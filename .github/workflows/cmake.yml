@@ -1,0 +1,89 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  clang-format:
+
+    name: ClangFormat check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Format code
+      run: find src/ test/ -iname '*.c' -or -iname '*.cpp' -or -iname '*.h' -or -iname '*.hpp' | xargs clang-format -i -style=file
+    - name: Check diff
+      run: git diff --exit-code
+  
+  build-gcc:
+
+    name: Ubuntu GCC
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: Configure
+      run: mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror -pedantic" ..
+    - name: Build
+      run: cmake --build build
+    - name: Test
+      run: cd build && ctest
+  
+  build-clang:
+
+    name: Ubuntu Clang
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: Configure
+      run: mkdir build && cd build && cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror -pedantic" ..
+    - name: Build
+      run: cmake --build build
+    - name: Test
+      run: cd build && ctest
+  
+  build-macos-clang:
+
+    name: MacOS Clang
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: Configure
+      run: mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror -pedantic" ..
+    - name: Build
+      run: cmake --build build
+    - name: Test
+      run: cd build && ctest
+  
+  build-msvc:
+
+    name: Windows latest - MSVC
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: Configure
+      run: mkdir build && cd build && cmake ..
+    - name: Build
+      run: cmake --build build
+    - name: Test
+      run: cd build && ctest
