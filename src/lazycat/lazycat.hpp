@@ -1,4 +1,5 @@
 #include <cstring>
+#include <lazycat/util.hpp>
 #include <string>
 #include <string_view>
 
@@ -14,7 +15,7 @@ template <typename Cat>
 struct base_cat {
     operator std::string() const noexcept {
         const size_t sz = static_cast<const Cat&>(*this).size();
-        std::string ret(sz, char{});
+        std::string ret = construct_default_init(sz);
         static_cast<const Cat&>(*this).write(ret.data());
         return ret;
     }
