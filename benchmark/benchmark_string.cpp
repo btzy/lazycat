@@ -62,5 +62,3 @@ BENCHMARK_F(Add5_String_Fixture, BM_Add5_String_Abseil)(benchmark::State& state)
         benchmark::DoNotOptimize(total);
     }
 }
-
-BENCHMARK_MAIN();
