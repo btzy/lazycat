@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.9)
 project(lazycat)
 
-set (CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(src)
 
@@ -25,6 +25,7 @@ if(${LAZYCAT_BUILD_BENCHMARKS})
     set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
     set(BENCHMARK_ENABLE_TESTING OFF)
     set(BUILD_TESTING OFF)
+    # set(BENCHMARK_ENABLE_LTO ON)
     add_subdirectory(vendor/benchmark)
     add_subdirectory(vendor/abseil-cpp)
     add_subdirectory(benchmark)

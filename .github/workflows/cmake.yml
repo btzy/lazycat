@@ -39,7 +39,7 @@ jobs:
   
   build-clang:
 
-    name: Ubuntu Clang
+    name: Ubuntu Clang libstdc++
     runs-on: ubuntu-latest
     
     steps:
@@ -82,7 +82,7 @@ jobs:
       with:
         submodules: recursive
     - name: Configure
-      run: mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release ..
+      run: mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. # benchmark not compiling on Windows
     - name: Build
       run: cmake --build build
     - name: Test
