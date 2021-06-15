@@ -5,7 +5,8 @@
 // Define LAZYCAT_DANGEROUS_OPTIMIZATIONS to enable dangerous optimizations that are technically
 // undefined behavior (default is off)
 
-namespace lazycat_detail {
+namespace lazycat {
+namespace detail {
 // helper void_t
 #if defined(__cpp_lib_void_t) && __cpp_lib_void_t >= 201411
 using std::void_t;
@@ -77,4 +78,5 @@ struct construct_default_init_t<
 inline std::string construct_default_init(size_t sz) noexcept {
     return construct_default_init_t<std::string>::construct_default_init(sz);
 }
-}  // namespace lazycat_detail
+}  // namespace detail
+}  // namespace lazycat

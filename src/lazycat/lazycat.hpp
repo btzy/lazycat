@@ -3,7 +3,8 @@
 #include <string>
 #include <string_view>
 
-namespace lazycat_detail {
+namespace lazycat {
+namespace detail {
 // should use nested references instead?
 struct empty_cat;
 template <typename Prev>
@@ -21,10 +22,10 @@ struct base_cat {
     }
     std::string build() const noexcept { return *this; }
     constexpr auto operator<<(std::string_view curr) const noexcept {
-        return lazycat_detail::string_view_cat<Cat>{{}, static_cast<const Cat&>(*this), curr};
+        return string_view_cat<Cat>{{}, static_cast<const Cat&>(*this), curr};
     }
     constexpr auto operator<<(char curr) const noexcept {
-        return lazycat_detail::char_cat<Cat>{{}, static_cast<const Cat&>(*this), curr};
+        return char_cat<Cat>{{}, static_cast<const Cat&>(*this), curr};
     }
     template <typename S>
     constexpr auto cat(S&& s) const noexcept {
@@ -60,9 +61,10 @@ struct char_cat : public base_cat<char_cat<Prev>> {
         return out;
     }
 };
-}  // namespace lazycat_detail
+}  // namespace detail
 
 template <typename... Ss>
-constexpr inline auto lazycat(Ss&&... ss) noexcept {
-    return (lazycat_detail::empty_cat{} << ... << ss);
+constexpr inline auto cat(Ss&&... ss) noexcept {
+    return (detail::empty_cat{} << ... << ss);
 }
+}  // namespace lazycat

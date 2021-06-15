@@ -5,6 +5,8 @@
 #include <benchmark/benchmark.h>
 #include <lazycat/lazycat.hpp>
 
+using namespace lazycat;
+
 class Add10_Char_Fixture : public benchmark::Fixture {
    public:
     inline static char first, second, third, fourth, fifth, sixth, seventh, eighth, ninth, tenth;
@@ -52,7 +54,7 @@ BENCHMARK_F(Add10_Char_Fixture, BM_Add10_Char_Better)(benchmark::State& state) {
 BENCHMARK_F(Add10_Char_Fixture, BM_Add10_Char_LazyCat)(benchmark::State& state) {
     for (auto _ : state) {
         std::string total =
-            lazycat(first, second, third, fourth, fifth, sixth, seventh, eighth, ninth, tenth);
+            cat(first, second, third, fourth, fifth, sixth, seventh, eighth, ninth, tenth);
         benchmark::DoNotOptimize(total);
     }
 }

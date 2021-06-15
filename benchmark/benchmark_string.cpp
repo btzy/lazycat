@@ -5,6 +5,8 @@
 #include <benchmark/benchmark.h>
 #include <lazycat/lazycat.hpp>
 
+using namespace lazycat;
+
 std::string repeat_string(std::string_view base, size_t times) {
     std::string ret;
     for (size_t i = 0; i != times; ++i) ret += base;
@@ -51,7 +53,7 @@ BENCHMARK_F(Add5_String_Fixture, BM_Add5_String_Better)(benchmark::State& state)
 
 BENCHMARK_F(Add5_String_Fixture, BM_Add5_String_LazyCat)(benchmark::State& state) {
     for (auto _ : state) {
-        std::string total = lazycat(first, second, third, fourth, fifth);
+        std::string total = cat(first, second, third, fourth, fifth);
         benchmark::DoNotOptimize(total);
     }
 }
