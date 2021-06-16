@@ -3,6 +3,7 @@
 
 #include <absl/strings/str_cat.h>
 #include <benchmark/benchmark.h>
+#include <fmt/core.h>
 #include <lazycat/lazycat.hpp>
 
 using namespace lazycat;
@@ -61,6 +62,14 @@ BENCHMARK_F(Add5_String_Fixture, BM_Add5_String_LazyCat)(benchmark::State& state
 BENCHMARK_F(Add5_String_Fixture, BM_Add5_String_Abseil)(benchmark::State& state) {
     for (auto _ : state) {
         std::string total = absl::StrCat(first, second, third, fourth, fifth);
+        benchmark::DoNotOptimize(total);
+    }
+}
+
+BENCHMARK_F(Add5_String_Fixture, BM_Add5_String_Fmt)(benchmark::State& state) {
+    for (auto _ : state) {
+        std::string total =
+            fmt::format(FMT_STRING("{}{}{}{}{}"), first, second, third, fourth, fifth);
         benchmark::DoNotOptimize(total);
     }
 }
