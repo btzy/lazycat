@@ -23,3 +23,50 @@ TEST_CASE("concat char") {
     REQUIRE(cat(ch, s1).build() == ch + s1);
     REQUIRE(cat(ch, 'z').build() == "xz");
 }
+
+TEST_CASE("basic append strings") {
+    std::string initial = "initial";
+    std::string s1 = "str1";
+    std::string s2 = "s2";
+    std::string s3 = "string3";
+    {
+        std::string copy = initial;
+        append(copy).build();
+        REQUIRE(copy == initial);
+    }
+    {
+        std::string copy = initial;
+        append(copy, s1).build();
+        REQUIRE(copy == initial + s1);
+    }
+    {
+        std::string copy = initial;
+        append(copy, s1, s2).build();
+        REQUIRE(copy == initial + s1 + s2);
+    }
+    {
+        std::string copy = initial;
+        append(copy, s1, s2, s3).build();
+        REQUIRE(copy == initial + s1 + s2 + s3);
+    }
+    {
+        std::string copy = initial;
+        (append(copy) << s1 << s2 << s3).build();
+        REQUIRE(copy == initial + s1 + s2 + s3);
+    }
+}
+
+TEST_CASE("append char") {
+    std::string initial = "initial";
+    char ch = 'x';
+    {
+        std::string copy = initial;
+        append(copy, ch).build();
+        REQUIRE(copy == initial + ch);
+    }
+    {
+        std::string copy = initial;
+        append(copy, ch, 'z').build();
+        REQUIRE(copy == initial + ch + 'z');
+    }
+}
