@@ -7,6 +7,8 @@
 
 using namespace lazycat;
 
+namespace {
+
 class Add10_Char_Fixture : public benchmark::Fixture {
    public:
     inline static char first, second, third, fourth, fifth, sixth, seventh, eighth, ninth, tenth;
@@ -58,3 +60,5 @@ BENCHMARK_F(Add10_Char_Fixture, BM_Add10_Char_LazyCat)(benchmark::State& state) 
         benchmark::DoNotOptimize(total);
     }
 }
+
+}  // namespace

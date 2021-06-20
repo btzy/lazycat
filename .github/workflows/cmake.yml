@@ -73,7 +73,7 @@ jobs:
   
   build-msvc:
 
-    name: Windows latest - MSVC
+    name: Windows MSVC
     runs-on: windows-latest
     
     steps:
@@ -82,7 +82,7 @@ jobs:
       with:
         submodules: recursive
     - name: Configure
-      run: mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. # benchmark not compiling on Windows
+      run: mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DLAZYCAT_BUILD_BENCHMARKS=ON ..
     - name: Build
       run: cmake --build build
     - name: Test
