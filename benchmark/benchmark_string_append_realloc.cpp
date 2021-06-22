@@ -78,4 +78,16 @@ BENCHMARK_F(Append5_Realloc_Fixture, BM_Append5_Realloc_DoNothing)(benchmark::St
     }
 }
 
+BENCHMARK_F(Append5_Realloc_Fixture, BM_Append5_Realloc_DoAlmostNothing)(benchmark::State& state) {
+    for (auto _ : state) {
+        const size_t tmp = initial.size() + first.size() + second.size() + third.size() +
+                           fourth.size() + fifth.size();
+        std::string cp;
+        cp.swap(initial);  // really free the memory
+        initial.resize(tmp);
+        std::string().swap(cp);
+        benchmark::DoNotOptimize(initial);
+    }
+}
+
 }  // namespace
