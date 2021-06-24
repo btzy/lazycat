@@ -19,8 +19,7 @@ class Append5_NoRealloc_Fixture : public benchmark::Fixture {
    public:
     inline static std::string initial, first, second, third, fourth, fifth;
     void SetUp(const ::benchmark::State&) {
-        initial = repeat_string("initial", 600);  // warm up the memory
-        initial.resize(7 * 100);  // discard everything after the first 100 "initial"
+        initial = repeat_string("initial", 100);
         first = repeat_string("first", 100);
         second = repeat_string("second", 100);
         third = repeat_string("third", 100);
@@ -40,41 +39,49 @@ class Append5_NoRealloc_Fixture : public benchmark::Fixture {
 
 BENCHMARK_F(Append5_NoRealloc_Fixture, BM_Append5_NoRealloc_Basic)(benchmark::State& state) {
     for (auto _ : state) {
-        initial += first + second + third + fourth + fifth;
-        benchmark::DoNotOptimize(initial);
+        std::string clone = initial;
+        clone.reserve(clone.size() * 6);
+        clone += first + second + third + fourth + fifth;
+        benchmark::DoNotOptimize(clone);
     }
 }
 
 BENCHMARK_F(Append5_NoRealloc_Fixture, BM_Append5_NoRealloc_Better)(benchmark::State& state) {
     for (auto _ : state) {
-        initial += first;
-        initial += second;
-        initial += third;
-        initial += fourth;
-        initial += fifth;
-        benchmark::DoNotOptimize(initial);
+        std::string clone = initial;
+        clone.reserve(clone.size() * 6);
+        clone += first;
+        clone += second;
+        clone += third;
+        clone += fourth;
+        clone += fifth;
+        benchmark::DoNotOptimize(clone);
     }
 }
 
 BENCHMARK_F(Append5_NoRealloc_Fixture, BM_Append5_NoRealloc_LazyCat)(benchmark::State& state) {
     for (auto _ : state) {
-        append(initial, first, second, third, fourth, fifth).build();
-        benchmark::DoNotOptimize(initial);
+        std::string clone = initial;
+        clone.reserve(clone.size() * 6);
+        append(clone, first, second, third, fourth, fifth).build();
+        benchmark::DoNotOptimize(clone);
     }
 }
 
 BENCHMARK_F(Append5_NoRealloc_Fixture, BM_Append5_NoRealloc_Abseil)(benchmark::State& state) {
     for (auto _ : state) {
-        absl::StrAppend(&initial, first, second, third, fourth, fifth);
-        benchmark::DoNotOptimize(initial);
+        std::string clone = initial;
+        clone.reserve(clone.size() * 6);
+        absl::StrAppend(&clone, first, second, third, fourth, fifth);
+        benchmark::DoNotOptimize(clone);
     }
 }
 
 BENCHMARK_F(Append5_NoRealloc_Fixture, BM_Append5_NoRealloc_DoNothing)(benchmark::State& state) {
     for (auto _ : state) {
-        initial.resize(initial.size() + first.size() + second.size() + third.size() +
-                       fourth.size() + fifth.size());
-        benchmark::DoNotOptimize(initial);
+        std::string clone = initial;
+        clone.reserve(clone.size() * 6);
+        benchmark::DoNotOptimize(clone);
     }
 }
 

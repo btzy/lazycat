@@ -84,6 +84,6 @@ jobs:
     - name: Configure
       run: mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DLAZYCAT_BUILD_BENCHMARKS=ON ..
     - name: Build
-      run: cmake --build build
+      run: cmake --build build --config Release
     - name: Test
       run: cd build && ctest --verbose
