@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -15,6 +17,15 @@
     if (!(cond)) __builtin_unreachable()
 #else
 #define LAZYCAT_ASSUME(cond)
+#endif
+
+// __forceinline macro
+#if defined(_MSC_VER)
+#define LAZYCAT_FORCEINLINE __forceinline
+#elif defined(__GNUC__)
+#define LAZYCAT_FORCEINLINE __attribute__((always_inline))
+#else
+#define LAZYCAT_FORCEINLINE
 #endif
 
 // expands to 'constexpr' if std::string has constexpr member functions (needs <string>)

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstring>
 #include <lazycat/util.hpp>
 #include <string>
@@ -7,6 +9,14 @@ namespace lazycat {
 
 struct base_catter {};
 struct base_writer {};
+
+// A writer must have these functions:
+// size_t size();
+// char* write(char* out);
+// constexprness, constness, and noexceptness is optional, but good to have.
+// size() will be called once, and then write() will be called once, so it is possible to generate
+// some cached value in size() (see lazycat_integral.hpp).  However, try to keep constructors and
+// destructors trivial.
 
 // stuff for cat():
 
@@ -119,12 +129,12 @@ struct char_writer : public base_writer {
     }
 };
 
-// main interface:
-
 template <typename Catter, typename = std::enable_if_t<std::is_base_of_v<base_catter, Catter>>>
 [[nodiscard]] constexpr auto operator<<(Catter c, char curr) noexcept {
     return c << char_writer{{}, curr};
 }
+
+// main interface:
 
 template <typename... Ss>
 [[nodiscard]] constexpr inline auto cat(Ss&&... ss) noexcept {

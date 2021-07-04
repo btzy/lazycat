@@ -1,5 +1,5 @@
-add_executable(unit_test unit_test.cpp)
-add_executable(unit_test_dangerous unit_test.cpp)
+add_executable(unit_test "unit_test.cpp" "integral_test.cpp")
+add_executable(unit_test_dangerous "unit_test.cpp" "integral_test.cpp")
 
 target_compile_definitions(unit_test_dangerous PRIVATE LAZYCAT_DANGEROUS_OPTIMIZATIONS)
 
