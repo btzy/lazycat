@@ -140,7 +140,7 @@ inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned_v3(const T& v
 #else
     size_t approx_log2 = (sizeof(unsigned int) * 8) - __lzcnt(val);
 #endif
-    size_t approx_log10 = (approx_log2 * 84732411018728) >> 48;
+    size_t approx_log10 = (approx_log2 * 19728) >> 16;
     return approx_log10 + (val >= powers_of_10<T>[approx_log10]);
 }
 
