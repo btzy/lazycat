@@ -134,7 +134,7 @@ inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned_v3(const T& v
 #if !defined(_MSC_VER)
     size_t approx_log2 = (sizeof(unsigned long) * 8) - __builtin_clzl(val | 1);
 #else
-    size_t approx_log2 = (sizeof(val) * 8) - __lzcnt(val | 1);
+    size_t approx_log2 = (sizeof(unsigned int) * 8) - __lzcnt(val | 1);
 #endif
     size_t approx_log10 = (approx_log2 * 84732411018728) >> 48;
     return approx_log10 + (val >= powers_of_10<T>[approx_log10]);
@@ -177,9 +177,9 @@ namespace detail {
 template <size_t MaxDigits, typename T>
 inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned_v4(const T& val) noexcept {
 #if !defined(_MSC_VER)
-    size_t approx_log2 = (sizeof(val) * 8 - 1) - __builtin_clzl(val | 1);
+    size_t approx_log2 = (sizeof(unsigned long) * 8 - 1) - __builtin_clzl(val | 1);
 #else
-    size_t approx_log2 = (sizeof(val) * 8 - 1) - __lzcnt(val | 1);
+    size_t approx_log2 = (sizeof(unsigned int) * 8 - 1) - __lzcnt(val | 1);
 #endif
     const P10Entry<T>& entry = powers_of_8<T>[approx_log2 >> 3];
     return entry.num_digits + (val > entry.next_pow_of_10_minus_1);
