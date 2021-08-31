@@ -136,11 +136,11 @@ static constexpr std::array<T, std::numeric_limits<T>::digits10 + 1> powers_of_1
 template <size_t MaxDigits, typename T>
 inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned_v3(const T& val) noexcept {
 #if !defined(_MSC_VER)
-    int approx_log2 = (sizeof(unsigned int) * 8) - __builtin_clz(val | 1);
+    unsigned int approx_log2 = (sizeof(unsigned int) * 8) - __builtin_clz(val | 1);
 #else
-    int approx_log2 = (sizeof(unsigned int) * 8) - __lzcnt(val);
+    unsigned int approx_log2 = (sizeof(unsigned int) * 8) - __lzcnt(val);
 #endif
-    int approx_log10 = (approx_log2 * 19728) >> 16;
+    unsigned int approx_log10 = (approx_log2 * 19728) >> 16;
     return approx_log10 + (val >= powers_of_10<T>[approx_log10]);
 }
 
