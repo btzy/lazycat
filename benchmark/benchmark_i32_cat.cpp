@@ -51,7 +51,7 @@ BENCHMARK_F(I32_Fixture, Stringify_I32_Fmt)(benchmark::State& state) {
 BENCHMARK_F(I32_Fixture, Write_I32_LazyCat)(benchmark::State& state) {
     for (auto _ : state) {
         char arr[64];
-        const auto writer = integral_writer<std::int32_t>{{}, first, 0};
+        auto writer = integral_writer<std::int32_t>{{}, first, 0};
         if (writer.size() <= 64) {
             writer.write(arr);
         }
@@ -106,12 +106,12 @@ template <typename T>
 struct integral_writer_v2 : public base_writer {
     T content;
     mutable size_t cached_size;  // cached value of size
-    constexpr size_t size() const noexcept {
+    constexpr size_t size() {
         return cached_size =
                    detail::calculate_integral_size_v2<std::numeric_limits<T>::digits10 + 1>(
                        content);
     }
-    constexpr char* write(char* out) const noexcept {
+    constexpr char* write(char* out) {
         return detail::write_integral_chars(out, content, cached_size);
     }
 };
@@ -163,12 +163,12 @@ template <typename T>
 struct integral_writer_v3 : public base_writer {
     T content;
     mutable size_t cached_size;  // cached value of size
-    constexpr size_t size() const noexcept {
+    constexpr size_t size() {
         return cached_size =
                    detail::calculate_integral_size_v3<std::numeric_limits<T>::digits10 + 1>(
                        content);
     }
-    constexpr char* write(char* out) const noexcept {
+    constexpr char* write(char* out) {
         return detail::write_integral_chars(out, content, cached_size);
     }
 };
@@ -241,12 +241,12 @@ template <typename T>
 struct integral_writer_v4 : public base_writer {
     T content;
     mutable size_t cached_size;  // cached value of size
-    constexpr size_t size() const noexcept {
+    constexpr size_t size() {
         return cached_size =
                    detail::calculate_integral_size_v4<std::numeric_limits<T>::digits10 + 1>(
                        content);
     }
-    constexpr char* write(char* out) const noexcept {
+    constexpr char* write(char* out) {
         return detail::write_integral_chars(out, content, cached_size);
     }
 };
@@ -256,7 +256,7 @@ struct integral_writer_v4 : public base_writer {
 BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_IterateSize)(benchmark::State& state) {
     for (auto _ : state) {
         char arr[64];
-        const auto writer = integral_writer_v2<std::int32_t>{{}, first, 0};
+        auto writer = integral_writer_v2<std::int32_t>{{}, first, 0};
         if (writer.size() <= 64) {
             writer.write(arr);
         }
@@ -267,7 +267,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_IterateSize)(benchmark::State& state)
 BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ApproxSize)(benchmark::State& state) {
     for (auto _ : state) {
         char arr[64];
-        const auto writer = integral_writer_v3<std::int32_t>{{}, first, 0};
+        auto writer = integral_writer_v3<std::int32_t>{{}, first, 0};
         if (writer.size() <= 64) {
             writer.write(arr);
         }
@@ -278,7 +278,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ApproxSize)(benchmark::State& state) 
 BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_Pow8)(benchmark::State& state) {
     for (auto _ : state) {
         char arr[64];
-        const auto writer = integral_writer_v4<std::int32_t>{{}, first, 0};
+        auto writer = integral_writer_v4<std::int32_t>{{}, first, 0};
         if (writer.size() <= 64) {
             writer.write(arr);
         }
@@ -302,7 +302,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_PRNG_Original)(benchmark::State& stat
         x = ((x >> 16) ^ x) * 0x45d9f3b;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer<std::int32_t>{{}, x, 0};
         if (writer.size() <= 64) {
             writer.write(arr);
         }
@@ -318,7 +318,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_PRNG_IterateSize)(benchmark::State& s
         x = ((x >> 16) ^ x) * 0x45d9f3b;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer_v2<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer_v2<std::int32_t>{{}, x, 0};
         if (writer.size() <= 64) {
             writer.write(arr);
         }
@@ -334,7 +334,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_PRNG_ApproxSize)(benchmark::State& st
         x = ((x >> 16) ^ x) * 0x45d9f3b;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer_v3<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer_v3<std::int32_t>{{}, x, 0};
         if (writer.size() <= 64) {
             writer.write(arr);
         }
@@ -350,7 +350,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_PRNG_Pow8)(benchmark::State& state) {
         x = ((x >> 16) ^ x) * 0x45d9f3b;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer_v4<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer_v4<std::int32_t>{{}, x, 0};
         if (writer.size() <= 64) {
             writer.write(arr);
         }
@@ -390,7 +390,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG_Original)(benchmark::State& s
         x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer<std::int32_t>{{}, x, 0};
         if (writer.size() <= 64) {
             writer.write(arr);
         }
@@ -407,7 +407,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG_IterateSize)(benchmark::State
         x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer_v2<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer_v2<std::int32_t>{{}, x, 0};
         if (writer.size() <= 64) {
             writer.write(arr);
         }
@@ -424,7 +424,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG_ApproxSize)(benchmark::State&
         x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer_v3<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer_v3<std::int32_t>{{}, x, 0};
         if (writer.size() <= 64) {
             writer.write(arr);
         }
@@ -441,7 +441,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG_Pow8)(benchmark::State& state
         x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer_v4<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer_v4<std::int32_t>{{}, x, 0};
         if (writer.size() <= 64) {
             writer.write(arr);
         }
@@ -470,7 +470,7 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_PRNG_Original)(benchmark::State& state
         x = ((x >> 16) ^ x) * 0x45d9f3b;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer<std::int32_t>{{}, x, 0};
         const auto size = writer.size();
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(size);
@@ -483,7 +483,7 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_PRNG_IterateSize)(benchmark::State& st
         x = ((x >> 16) ^ x) * 0x45d9f3b;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer_v2<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer_v2<std::int32_t>{{}, x, 0};
         const auto size = writer.size();
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(size);
@@ -496,7 +496,7 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_PRNG_ApproxSize)(benchmark::State& sta
         x = ((x >> 16) ^ x) * 0x45d9f3b;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer_v3<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer_v3<std::int32_t>{{}, x, 0};
         const auto size = writer.size();
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(size);
@@ -509,7 +509,7 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_PRNG_Pow8)(benchmark::State& state) {
         x = ((x >> 16) ^ x) * 0x45d9f3b;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer_v4<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer_v4<std::int32_t>{{}, x, 0};
         const auto size = writer.size();
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(size);
@@ -524,7 +524,7 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_ExpPRNG_Original)(benchmark::State& st
         x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer<std::int32_t>{{}, x, 0};
         size = writer.size();
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(size);
@@ -539,7 +539,7 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_ExpPRNG_IterateSize)(benchmark::State&
         x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer_v2<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer_v2<std::int32_t>{{}, x, 0};
         size = writer.size();
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(size);
@@ -554,7 +554,7 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_ExpPRNG_ApproxSize)(benchmark::State& 
         x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer_v3<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer_v3<std::int32_t>{{}, x, 0};
         size = writer.size();
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(size);
@@ -569,7 +569,7 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_ExpPRNG_Pow8)(benchmark::State& state)
         x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
-        const auto writer = integral_writer_v4<std::int32_t>{{}, x, 0};
+        auto writer = integral_writer_v4<std::int32_t>{{}, x, 0};
         size = writer.size();
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(size);
@@ -580,8 +580,8 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_ExpPRNG_Pow8)(benchmark::State& state)
 /*     int x = 42; */
 /*     for (int i = 0; i < 10000; i++) { */
 /*         x = ((x >> 16) ^ x) * 0x45d9f3b; */
-/*         const auto writer = integral_writer<std::int32_t>{{}, x, 0}; */
-/*         const auto writer3 = integral_writer_v3<std::int32_t>{{}, x, 0}; */
+/*         auto writer = integral_writer<std::int32_t>{{}, x, 0}; */
+/*         auto writer3 = integral_writer_v3<std::int32_t>{{}, x, 0}; */
 /*         int size = writer.size(); */
 /*         int size3 = writer3.size(); */
 /*         REQUIRE(size == size3); */
