@@ -376,7 +376,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG)(benchmark::State& state) {
     int x = 42;
     for (auto _ : state) {
         x = ((x >> 16) ^ x) * 0x45d9f3b;
-        x = detail::powers_of_10<int>[x % 9] & x;
+        x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
     }
@@ -387,7 +387,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG_Original)(benchmark::State& s
     for (auto _ : state) {
         char arr[64];
         x = ((x >> 16) ^ x) * 0x45d9f3b;
-        x = detail::powers_of_10<int>[x % 9] & x;
+        x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
         const auto writer = integral_writer<std::int32_t>{{}, x, 0};
@@ -404,7 +404,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG_IterateSize)(benchmark::State
     for (auto _ : state) {
         char arr[64];
         x = ((x >> 16) ^ x) * 0x45d9f3b;
-        x = detail::powers_of_10<int>[x % 9] & x;
+        x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
         const auto writer = integral_writer_v2<std::int32_t>{{}, x, 0};
@@ -421,7 +421,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG_ApproxSize)(benchmark::State&
     for (auto _ : state) {
         char arr[64];
         x = ((x >> 16) ^ x) * 0x45d9f3b;
-        x = detail::powers_of_10<int>[x % 9] & x;
+        x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
         const auto writer = integral_writer_v3<std::int32_t>{{}, x, 0};
@@ -438,7 +438,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG_Pow8)(benchmark::State& state
     for (auto _ : state) {
         char arr[64];
         x = ((x >> 16) ^ x) * 0x45d9f3b;
-        x = detail::powers_of_10<int>[x % 9] & x;
+        x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
         const auto writer = integral_writer_v4<std::int32_t>{{}, x, 0};
@@ -455,7 +455,7 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG_ToChars)(benchmark::State& st
     for (auto _ : state) {
         char arr[64];
         x = ((x >> 16) ^ x) * 0x45d9f3b;
-        x = detail::powers_of_10<int>[x % 9] & x;
+        x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
         std::to_chars(arr, arr + 64, x);
@@ -521,7 +521,7 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_ExpPRNG_Original)(benchmark::State& st
     size_t size;
     for (auto _ : state) {
         x = ((x >> 16) ^ x) * 0x45d9f3b;
-        x = detail::powers_of_10<int>[x % 9] & x;
+        x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
         const auto writer = integral_writer<std::int32_t>{{}, x, 0};
@@ -536,7 +536,7 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_ExpPRNG_IterateSize)(benchmark::State&
     size_t size;
     for (auto _ : state) {
         x = ((x >> 16) ^ x) * 0x45d9f3b;
-        x = detail::powers_of_10<int>[x % 9] & x;
+        x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
         const auto writer = integral_writer_v2<std::int32_t>{{}, x, 0};
@@ -551,7 +551,7 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_ExpPRNG_ApproxSize)(benchmark::State& 
     size_t size;
     for (auto _ : state) {
         x = ((x >> 16) ^ x) * 0x45d9f3b;
-        x = detail::powers_of_10<int>[x % 9] & x;
+        x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
         const auto writer = integral_writer_v3<std::int32_t>{{}, x, 0};
@@ -566,7 +566,7 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_ExpPRNG_Pow8)(benchmark::State& state)
     size_t size;
     for (auto _ : state) {
         x = ((x >> 16) ^ x) * 0x45d9f3b;
-        x = detail::powers_of_10<int>[x % 9] & x;
+        x = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(x);
         const auto writer = integral_writer_v4<std::int32_t>{{}, x, 0};
