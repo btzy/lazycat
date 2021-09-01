@@ -75,10 +75,12 @@ namespace detail {
 template <size_t MaxDigits, typename T>
 inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned_v2(const T& val) noexcept {
     T dig10 = 1;
-#if !defined(_MSC_VER)
-#pragma GCC unroll 100
-#else
+#if defined(_MSC_VER)
 #pragma loop(ivdep)
+#elif defined(__clang__)
+#pragma unroll
+#else
+#pragma GCC unroll 100
 #endif
     for (size_t i = 1; i != MaxDigits; ++i) {
         dig10 *= 10;
@@ -122,16 +124,17 @@ struct integral_writer_v2 : public base_writer {
 
 namespace detail {
 template <typename T>
-static constexpr std::array<T, std::numeric_limits<T>::digits10 + 1> powers_of_10 = []() {
-    std::array<T, std::numeric_limits<T>::digits10 + 1> powers{};
-    T power = 1;
-    for (size_t i = 0; i < powers.size(); i++) {
-        powers[i] = power;
-        if (i + 1 < powers.size()) power *= 10;  // the condition prevents UB
-    }
-    powers[0] = 0;  // make it so that 0 is length 1
-    return powers;
-}();
+alignas(64) static constexpr std::array<T, std::numeric_limits<T>::digits10 + 1> powers_of_10 =
+    []() {
+        std::array<T, std::numeric_limits<T>::digits10 + 1> powers{};
+        T power = 1;
+        for (size_t i = 0; i < powers.size(); i++) {
+            powers[i] = power;
+            if (i + 1 < powers.size()) power *= 10;  // the condition prevents UB
+        }
+        powers[0] = 0;  // make it so that 0 is length 1
+        return powers;
+    }();
 
 template <size_t MaxDigits, typename T>
 inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned_v3(const T& val) noexcept {
