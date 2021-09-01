@@ -123,7 +123,7 @@ struct integral_writer_v2 : public base_writer {
 namespace detail {
 template <typename T>
 static constexpr std::array<T, std::numeric_limits<T>::digits10 + 1> powers_of_10 = []() {
-    std::array<T, std::numeric_limits<T>::digits10 + 1> powers;
+    std::array<T, std::numeric_limits<T>::digits10 + 1> powers{};
     T power = 1;
     for (size_t i = 0; i < powers.size(); i++) {
         powers[i] = power;
@@ -188,7 +188,7 @@ struct P10Entry {
 template <typename T>
 static constexpr std::array<P10Entry<T>, ((std::numeric_limits<T>::digits - 1) >> 3) + 1>
     powers_of_8 = []() {
-        std::array<P10Entry<T>, ((std::numeric_limits<T>::digits - 1) >> 3) + 1> powers;
+        std::array<P10Entry<T>, ((std::numeric_limits<T>::digits - 1) >> 3) + 1> powers{};
         constexpr T maxvalue = std::numeric_limits<T>::max();
         for (size_t i = 0; i < powers.size(); ++i) {
             T lowest = 1 << (i << 3);
