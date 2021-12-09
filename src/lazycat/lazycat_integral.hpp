@@ -1,9 +1,9 @@
 #pragma once
 
+#include <array>
 #include <lazycat/lazycat_core.hpp>
 #include <lazycat/util.hpp>
 #include <limits>
-#include <memory>
 #include <type_traits>
 
 // This file contains the writer for integral types
@@ -11,18 +11,18 @@
 namespace lazycat {
 
 namespace detail {
-// Computes the number of base-2 digits in val.  Requires T to be unsigned.  If val is 0, it may
-// return any number between 0 and 3 inclusive.
+// Computes the number of base-2 digits in val.  Requires T to be unsigned.  Assumes that val != 0.
 // For example:
-//   bit_width(1) == 1
-//   bit_width(2) == 2
-//   bit_width(3) == 2
-//   bit_width(4) == 3
-//   bit_width(7) == 3
-//   bit_width(8) == 4
+//   bit_width_nonzero(1) == 1
+//   bit_width_nonzero(2) == 2
+//   bit_width_nonzero(3) == 2
+//   bit_width_nonzero(4) == 3
+//   bit_width_nonzero(7) == 3
+//   bit_width_nonzero(8) == 4
 template <typename T>
-inline LAZYCAT_FORCEINLINE unsigned bit_width(const T& val) noexcept {
+inline LAZYCAT_FORCEINLINE unsigned bit_width_nonzero(const T& val) noexcept {
     static_assert(std::is_unsigned_v<T>);
+    LAZYCAT_ASSUME(val != 0);
 #if !defined(_MSC_VER)
 #if defined(__BMI__)
     if constexpr (std::numeric_limits<T>::digits <= 32) {
@@ -41,13 +41,13 @@ inline LAZYCAT_FORCEINLINE unsigned bit_width(const T& val) noexcept {
     }
 #else
     if constexpr (std::numeric_limits<T>::digits <= std::numeric_limits<unsigned>::digits) {
-        return std::numeric_limits<unsigned>::digits - __builtin_clz(val | 1);
+        return std::numeric_limits<unsigned>::digits - __builtin_clz(val);
     } else if constexpr (std::numeric_limits<T>::digits <=
                          std::numeric_limits<unsigned long>::digits) {
-        return std::numeric_limits<unsigned long>::digits - __builtin_clzl(val | 1);
+        return std::numeric_limits<unsigned long>::digits - __builtin_clzl(val);
     } else if constexpr (std::numeric_limits<T>::digits <=
                          std::numeric_limits<unsigned long long>::digits) {
-        return std::numeric_limits<unsigned long long>::digits - __builtin_clzll(val | 1);
+        return std::numeric_limits<unsigned long long>::digits - __builtin_clzll(val);
     } else {
         constexpr unsigned num_steps =
             (std::numeric_limits<T>::digits - 1) / std::numeric_limits<unsigned long long>::digits +
@@ -87,22 +87,24 @@ inline LAZYCAT_FORCEINLINE unsigned bit_width(const T& val) noexcept {
 #endif
 }
 
-// Stores the powers of 10
-// powers_of_10[0] = 0; (special case to make 0 have length 1)
-// powers_of_10[1] = 10;
-// powers_of_10[2] = 100;
-// powers_of_10[3] = 1000;
+// Stores the powers of 10 minus 1
+// powers_of_10_minus_1[0] = 0; (special case to make 0 have length 1)
+// powers_of_10_minus_1[1] = 9;
+// powers_of_10_minus_1[2] = 99;
+// powers_of_10_minus_1[3] = 999;
 // ...
-// powers_of_10[std::numeric_limits<T>::digits10] = 10....0;
-// powers_of_10[std::numeric_limits<T>::digits10 + 1] = std::numeric_limits<T>::max();
+// powers_of_10_minus_1[std::numeric_limits<T>::digits10] = 9....9;
+// powers_of_10_minus_1[std::numeric_limits<T>::digits10 + 1] = std::numeric_limits<T>::max();
 template <typename T>
-static constexpr std::array<T, std::numeric_limits<T>::digits10 + 1> powers_of_10 = []() {
-    std::array<T, std::numeric_limits<T>::digits10 + 1> powers{};
+static constexpr std::array<T, std::numeric_limits<T>::digits10 + 2> powers_of_10_minus_1 = []() {
+    std::array<T, std::numeric_limits<T>::digits10 + 2> powers{};
     T power = 1;
-    for (size_t i = 0; i < powers.size(); i++) {
-        powers[i] = power;
-        if (i + 1 < powers.size()) power *= 10;  // the condition prevents UB
+    for (size_t i = 0; i + 2 < powers.size(); i++) {
+        powers[i] = power - 1;
+        power *= 10;
     }
+    powers[powers.size() - 2] = power - 1;
+    powers[powers.size() - 1] = std::numeric_limits<T>::max();
     powers[0] = 0;  // make it so that 0 is length 1
     return powers;
 }();
@@ -127,36 +129,44 @@ struct log2_to_log10_converter_values {
         unsigned multiplier, rshift;
     };
     // Generates the conversion for a given T and MaxDigits.
-    constexpr static pair values = []() {
+    constexpr static pair compute_values() noexcept {
         for (unsigned rshift = 0; true; ++rshift) {
             const unsigned lower_bound = ((2u << rshift) - 1) / 7 + 1;
             const unsigned upper_bound = ((3u << rshift) - 1) / 7;
             for (unsigned multiplier = lower_bound; multiplier <= upper_bound; ++multiplier) {
-                unsigned i;
-                for (i = 1; i < MaxDigits; ++i) {
+                unsigned i = 1;
+                for (; i < MaxDigits; ++i) {
                     const unsigned approx_log10 =
-                        (num_digits_base_2(powers_of_10<T>[i]) * multiplier) >> rshift;
+                        (num_digits_base_2(powers_of_10_minus_1<T>[i]) * multiplier) >> rshift;
                     if (approx_log10 != i) break;
                 }
                 // MSVC can't handle 'continue' in constexpr context
                 if (i >= MaxDigits) return pair{multiplier, rshift};
             }
         }
-    }();
+    }
 
    public:
-    constexpr static unsigned multiplier = values.multiplier;
-    constexpr static unsigned rshift = values.rshift;
+    constexpr static unsigned multiplier = compute_values().multiplier;
+    constexpr static unsigned rshift = compute_values().rshift;
 };
 
 template <size_t MaxDigits, typename T>
 inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned(const T& val) noexcept {
     static_assert(std::is_unsigned_v<T>);
-    const unsigned approx_log2 = bit_width(val);
+
+    // This is necessary for two reasons:
+    // 1) bit_width_nonzero may require the argument to be nonzero so that __builtin_clz() will
+    // work.
+    // 2) Later, `tmp > powers_of_10_minus_1<T>[approx_log10]` must be true, so that the input
+    // 0 will return 1.
+    const T tmp = val | 1;
+
+    const unsigned approx_log2 = bit_width_nonzero(tmp);
     const unsigned approx_log10 =
         (approx_log2 * log2_to_log10_converter_values<MaxDigits, T>::multiplier) >>
         log2_to_log10_converter_values<MaxDigits, T>::rshift;
-    return approx_log10 + (val >= powers_of_10<T>[approx_log10]);
+    return approx_log10 + (tmp > powers_of_10_minus_1<T>[approx_log10]);
 }
 
 #if defined(_MSC_VER)

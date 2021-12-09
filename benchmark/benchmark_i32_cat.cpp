@@ -10,9 +10,6 @@
 #if __has_include(<immintrin.h>)
 #include <immintrin.h>
 #endif
-#if __has_include(<intrin.h>)
-#include <intrin.h>
-#endif
 
 using namespace lazycat;
 
@@ -211,10 +208,30 @@ struct integral_writer_v2 : public base_writer {
 
 namespace detail {
 
+// Stores the powers of 10
+// powers_of_10[0] = 0; (special case to make 0 have length 1)
+// powers_of_10[1] = 10;
+// powers_of_10[2] = 100;
+// powers_of_10[3] = 1000;
+// ...
+// powers_of_10[std::numeric_limits<T>::digits10] = 10....0;
+// powers_of_10[std::numeric_limits<T>::digits10 + 1] = std::numeric_limits<T>::max();
+template <typename T>
+static constexpr std::array<T, std::numeric_limits<T>::digits10 + 1> powers_of_10 = []() {
+    std::array<T, std::numeric_limits<T>::digits10 + 1> powers{};
+    T power = 1;
+    for (size_t i = 0; i < powers.size(); i++) {
+        powers[i] = power;
+        if (i + 1 < powers.size()) power *= 10;  // the condition prevents UB
+    }
+    powers[0] = 0;  // make it so that 0 is length 1
+    return powers;
+}();
+
 template <size_t MaxDigits, typename T>
 inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned_v3(const T& val) noexcept {
     static_assert(std::is_unsigned_v<T>);
-    const unsigned approx_log2 = bit_width(val);
+    const unsigned approx_log2 = bit_width_nonzero(val | 1);
     // static_assert(log2_to_log10_converter_values<MaxDigits, T>::multiplier == 5 &&
     //               log2_to_log10_converter_values<MaxDigits, T>::rshift == 4);
     const unsigned approx_log10 =
@@ -229,12 +246,12 @@ template <size_t MaxDigits, typename T>
 inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_v3(const T& val) noexcept {
     if constexpr (std::is_signed_v<T>) {  // signed
         if (val < static_cast<T>(0)) {    // negative
-            return calculate_integral_size_unsigned_v3<MaxDigits>(
+            return calculate_integral_size_unsigned<MaxDigits>(
                        static_cast<std::make_unsigned_t<T>>(
                            -static_cast<std::make_unsigned_t<T>>(val))) +
                    1;  // +1 for the negative sign
         } else {
-            return calculate_integral_size_unsigned_v3<MaxDigits>(
+            return calculate_integral_size_unsigned<MaxDigits>(
                 static_cast<std::make_unsigned_t<T>>(val));
         }
     } else {  // unsigned
@@ -265,14 +282,17 @@ struct P10Entry {
     T next_pow_of_10_minus_1;
 };
 
+// Compute lookup table from power of 8 to entry
+// powers_of_8[0] = {1, 9};
+// powers_of_8[1] = {1, 9};
 template <typename T>
-static constexpr std::array<P10Entry<T>, ((std::numeric_limits<T>::digits - 1) >> 3) + 1>
+static constexpr std::array<P10Entry<T>, ((std::numeric_limits<T>::digits - 1) / 3) + 1>
     powers_of_8 = []() {
-        std::array<P10Entry<T>, ((std::numeric_limits<T>::digits - 1) >> 3) + 1> powers{};
+        std::array<P10Entry<T>, ((std::numeric_limits<T>::digits - 1) / 3) + 1> powers{};
         constexpr T maxvalue = std::numeric_limits<T>::max();
         for (size_t i = 0; i < powers.size(); ++i) {
-            T lowest = 1 << (i << 3);
-            T num_digits = 1;
+            T lowest = static_cast<T>(1) << (i * 3);
+            unsigned num_digits = 1;
             T next_pow_of_10 = 10;
             while (true) {
                 if (lowest < next_pow_of_10) {
@@ -296,9 +316,9 @@ inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned_v4(const T& v
 #if !defined(_MSC_VER)
     size_t approx_log2 = (sizeof(unsigned long) * 8 - 1) - __builtin_clzl(val | 1);
 #else
-    size_t approx_log2 = (sizeof(unsigned int) * 8 - 1) - __lzcnt(val);
+    size_t approx_log2 = (sizeof(unsigned int) * 8 - 1) - __lzcnt(val | 1);
 #endif
-    const P10Entry<T>& entry = powers_of_8<T>[approx_log2 >> 3];
+    const P10Entry<T>& entry = powers_of_8<T>[approx_log2 / 3];
     return entry.num_digits + (val > entry.next_pow_of_10_minus_1);
 }
 
