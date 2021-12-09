@@ -7,6 +7,12 @@
 #include <benchmark/benchmark.h>
 #include <fmt/core.h>
 #include <lazycat/lazycat.hpp>
+#if __has_include(<immintrin.h>)
+#include <immintrin.h>
+#endif
+#if __has_include(<intrin.h>)
+#include <intrin.h>
+#endif
 
 using namespace lazycat;
 
@@ -72,6 +78,16 @@ BENCHMARK_F(I32_Fixture, Write_I32_ToChars)(benchmark::State& state) {
 namespace lazycat {
 
 namespace detail {
+
+template <typename T>
+constexpr T pow10(size_t exp) noexcept {
+    T ret = 1;
+    while (exp-- > 0) {
+        ret *= 10;
+    }
+    return ret;
+}
+
 #if defined(_MSC_VER)
 #pragma warning(push)
 // prevents C4146: unary minus operator applied to unsigned type, result still unsigned
@@ -194,77 +210,16 @@ struct integral_writer_v2 : public base_writer {
 };
 
 namespace detail {
-// Stores the powers of 10
-// powers_of_10[0] = 0; (special case to make 0 have length 1)
-// powers_of_10[1] = 10;
-// powers_of_10[2] = 100;
-// powers_of_10[3] = 1000;
-// ...
-template <typename T>
-static constexpr std::array<T, std::numeric_limits<T>::digits10 + 1> powers_of_10 = []() {
-    std::array<T, std::numeric_limits<T>::digits10 + 1> powers{};
-    T power = 1;
-    for (size_t i = 0; i < powers.size(); i++) {
-        powers[i] = power;
-        if (i + 1 < powers.size()) power *= 10;  // the condition prevents UB
-    }
-    powers[0] = 0;  // make it so that 0 is length 1
-    return powers;
-}();
-
-template <typename T>
-static constexpr unsigned num_digits_base_2(T t) {
-    static_assert(std::is_unsigned_v<T>);
-    unsigned ct = 0;
-    while (t > 0) {
-        ++ct;
-        t >>= 1;
-    }
-    return ct;
-}
-
-// Stores the conversion: approx_log10 = (approx_log2 * multiplier) >> rshift;
-struct log2_to_log10_converter_values_t {
-    unsigned multiplier;
-    unsigned rshift;
-};
-
-// Generates the conversion for a given T and MaxDigits.
-template <size_t MaxDigits, typename T>
-static constexpr log2_to_log10_converter_values_t log2_to_log10_converter_values = []() {
-    for (unsigned rshift = 0; true; ++rshift) {
-        const unsigned lower_bound = ((2u << rshift) - 1) / 7 + 1;
-        const unsigned upper_bound = ((3u << rshift) - 1) / 7;
-        for (unsigned multiplier = lower_bound; multiplier <= upper_bound; ++multiplier) {
-            unsigned i;
-            for (i = 1; i < MaxDigits; ++i) {
-                const unsigned approx_log10 =
-                    (num_digits_base_2(powers_of_10<T>[i]) * multiplier) >> rshift;
-                if (approx_log10 != i) break;
-            }
-            // MSVC can't handle 'continue' in constexpr context
-            if (i >= MaxDigits) return log2_to_log10_converter_values_t{multiplier, rshift};
-        }
-    }
-}();
 
 template <size_t MaxDigits, typename T>
 inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned_v3(const T& val) noexcept {
     static_assert(std::is_unsigned_v<T>);
-#if !defined(_MSC_VER)
-#if defined(__BMI__)
-    unsigned int approx_log2 = std::numeric_limits<T>::digits - _lzcnt_u32(val);
-#else
-    unsigned int approx_log2 = std::numeric_limits<T>::digits - __builtin_clz(val | 1);
-#endif
-#else
-    unsigned int approx_log2 = std::numeric_limits<T>::digits - __lzcnt(val);
-#endif
-    // static_assert(log2_to_log10_converter_values<MaxDigits, T>.multiplier == 5 &&
-    //               log2_to_log10_converter_values<MaxDigits, T>.rshift == 4);
-    unsigned int approx_log10 =
-        (approx_log2 * log2_to_log10_converter_values<MaxDigits, T>.multiplier) >>
-        log2_to_log10_converter_values<MaxDigits, T>.rshift;
+    const unsigned approx_log2 = bit_width(val);
+    // static_assert(log2_to_log10_converter_values<MaxDigits, T>::multiplier == 5 &&
+    //               log2_to_log10_converter_values<MaxDigits, T>::rshift == 4);
+    const unsigned approx_log10 =
+        (approx_log2 * log2_to_log10_converter_values<MaxDigits, T>::multiplier) >>
+        log2_to_log10_converter_values<MaxDigits, T>::rshift;
     return approx_log10 + (val >= powers_of_10<T>[approx_log10]);
 }
 

@@ -5,6 +5,8 @@
 #include <limits>
 #include <string_view>
 
+#include <iostream>
+
 using namespace lazycat;
 
 std::string_view sv_from_ptrs(char* begin, char* end) {
@@ -19,7 +21,9 @@ TEST_CASE("integral_writer int32_t") {
         REQUIRE(writer.size() == static_cast<size_t>(expected_end - expected));
         REQUIRE(sv_from_ptrs(actual, writer.write(actual)) == sv_from_ptrs(expected, expected_end));
     };
+    std::cout << "AAAAAA" << std::endl;
     test(std::numeric_limits<std::int32_t>::min());
+    std::cout << "BBBBBB" << std::endl;
     test(-1000000000);
     test(-999999999);
     test(-123456789);
