@@ -1,9 +1,9 @@
 #pragma once
 
+#include <array>
 #include <lazycat/lazycat_core.hpp>
 #include <lazycat/util.hpp>
 #include <limits>
-#include <memory>
 #include <type_traits>
 
 // This file contains the writer for integral types
@@ -11,13 +11,162 @@
 namespace lazycat {
 
 namespace detail {
+// Computes the number of base-2 digits in val.  Requires T to be unsigned.  Assumes that val != 0.
+// For example:
+//   bit_width_nonzero(1) == 1
+//   bit_width_nonzero(2) == 2
+//   bit_width_nonzero(3) == 2
+//   bit_width_nonzero(4) == 3
+//   bit_width_nonzero(7) == 3
+//   bit_width_nonzero(8) == 4
 template <typename T>
-constexpr T pow10(size_t exp) noexcept {
-    T ret = 1;
-    while (exp-- > 0) {
-        ret *= 10;
+inline LAZYCAT_FORCEINLINE unsigned bit_width_nonzero(const T& val) noexcept {
+    static_assert(std::is_unsigned_v<T>);
+    LAZYCAT_ASSUME(val != 0);
+#if !defined(_MSC_VER)
+#if defined(__BMI__)
+    if constexpr (std::numeric_limits<T>::digits <= 32) {
+        return std::numeric_limits<T>::digits - _lzcnt_u32(val);
+    } else if constexpr (std::numeric_limits<T>::digits <= 64) {
+        return std::numeric_limits<T>::digits - static_cast<unsigned>(_lzcnt_u64(val));
+    } else {
+        constexpr unsigned num_steps = (std::numeric_limits<T>::digits - 1) / 64 + 1;
+        for (unsigned i = num_steps - 1; i != std::numeric_limits<unsigned>::min(); --i) {
+            const unsigned __int64 chunk = static_cast<unsigned __int64>(val >> (i * 64));
+            if (chunk != 0)
+                return i * 64 +
+                       (std::numeric_limits<T>::digits - static_cast<unsigned>(_lzcnt_u64(chunk)));
+        }
+        return 0;
     }
-    return ret;
+#else
+    if constexpr (std::numeric_limits<T>::digits <= std::numeric_limits<unsigned>::digits) {
+        return std::numeric_limits<unsigned>::digits - __builtin_clz(val);
+    } else if constexpr (std::numeric_limits<T>::digits <=
+                         std::numeric_limits<unsigned long>::digits) {
+        return std::numeric_limits<unsigned long>::digits - __builtin_clzl(val);
+    } else if constexpr (std::numeric_limits<T>::digits <=
+                         std::numeric_limits<unsigned long long>::digits) {
+        return std::numeric_limits<unsigned long long>::digits - __builtin_clzll(val);
+    } else {
+        constexpr unsigned num_steps =
+            (std::numeric_limits<T>::digits - 1) / std::numeric_limits<unsigned long long>::digits +
+            1;
+        for (unsigned i = num_steps - 1; i != std::numeric_limits<unsigned>::min(); --i) {
+            const unsigned long long chunk = static_cast<unsigned long long>(
+                val >> (i * std::numeric_limits<unsigned long long>::digits));
+            if (chunk != 0)
+                return i * std::numeric_limits<unsigned long long>::digits +
+                       (std::numeric_limits<unsigned long long>::digits - __builtin_clzll(chunk));
+        }
+        return 0;
+    }
+#endif
+#else
+    if constexpr (std::numeric_limits<T>::digits <= std::numeric_limits<unsigned>::digits) {
+        return std::numeric_limits<unsigned>::digits - __lzcnt(val);
+    } else if constexpr (std::numeric_limits<T>::digits <=
+                         std::numeric_limits<unsigned __int64>::digits) {
+        return std::numeric_limits<unsigned __int64>::digits -
+               static_cast<unsigned>(__lzcnt64(val));
+    } else {
+        constexpr unsigned num_steps =
+            (std::numeric_limits<T>::digits - 1) / std::numeric_limits<unsigned __int64>::digits +
+            1;
+        for (unsigned i = num_steps - 1; i != numeric_limits<unsigned>::min(); --i) {
+            const unsigned __int64 chunk = static_cast<unsigned __int64>(
+                val >> (i * std::numeric_limits<unsigned __int64>::digits));
+            if (chunk != 0)
+                return i * std::numeric_limits<unsigned __int64>::digits +
+                       (std::numeric_limits<unsigned __int64>::digits -
+                        static_cast<unsigned>(__lzcnt64(chunk)));
+        }
+        return 0;
+    }
+    return std::numeric_limits<T>::digits - __lzcnt(val);
+#endif
+}
+
+// Stores the powers of 10 minus 1
+// powers_of_10_minus_1[0] = 0; (special case to make 0 have length 1)
+// powers_of_10_minus_1[1] = 9;
+// powers_of_10_minus_1[2] = 99;
+// powers_of_10_minus_1[3] = 999;
+// ...
+// powers_of_10_minus_1[std::numeric_limits<T>::digits10] = 9....9;
+// powers_of_10_minus_1[std::numeric_limits<T>::digits10 + 1] = std::numeric_limits<T>::max();
+template <typename T>
+static constexpr std::array<T, std::numeric_limits<T>::digits10 + 2> powers_of_10_minus_1 = []() {
+    std::array<T, std::numeric_limits<T>::digits10 + 2> powers{};
+    T power = 1;
+    for (size_t i = 0; i + 2 < powers.size(); i++) {
+        powers[i] = power - 1;
+        power *= 10;
+    }
+    powers[powers.size() - 2] = power - 1;
+    powers[powers.size() - 1] = std::numeric_limits<T>::max();
+    powers[0] = 0;  // make it so that 0 is length 1
+    return powers;
+}();
+
+template <typename T>
+static constexpr unsigned num_digits_base_2(T t) noexcept {
+    static_assert(std::is_unsigned_v<T>);
+    unsigned ct = 0;
+    while (t > 0) {
+        ++ct;
+        t >>= 1;
+    }
+    return ct;
+}
+
+// Calculates and stores the conversion constants: approx_log10 = (approx_log2 * multiplier) >>
+// rshift;
+template <size_t MaxDigits, typename T>
+struct log2_to_log10_converter_values {
+   private:
+    struct pair {
+        unsigned multiplier, rshift;
+    };
+    // Generates the conversion for a given T and MaxDigits.
+    constexpr static pair compute_values() noexcept {
+        for (unsigned rshift = 0; true; ++rshift) {
+            const unsigned lower_bound = ((2u << rshift) - 1) / 7 + 1;
+            const unsigned upper_bound = ((3u << rshift) - 1) / 7;
+            for (unsigned multiplier = lower_bound; multiplier <= upper_bound; ++multiplier) {
+                unsigned i = 1;
+                for (; i < MaxDigits; ++i) {
+                    const unsigned approx_log10 =
+                        (num_digits_base_2(powers_of_10_minus_1<T>[i]) * multiplier) >> rshift;
+                    if (approx_log10 != i) break;
+                }
+                // MSVC can't handle 'continue' in constexpr context
+                if (i >= MaxDigits) return pair{multiplier, rshift};
+            }
+        }
+    }
+
+   public:
+    constexpr static unsigned multiplier = compute_values().multiplier;
+    constexpr static unsigned rshift = compute_values().rshift;
+};
+
+template <size_t MaxDigits, typename T>
+inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned(const T& val) noexcept {
+    static_assert(std::is_unsigned_v<T>);
+
+    // This is necessary for two reasons:
+    // 1) bit_width_nonzero may require the argument to be nonzero so that __builtin_clz() will
+    // work.
+    // 2) Later, `tmp > powers_of_10_minus_1<T>[approx_log10]` must be true, so that the input
+    // 0 will return 1.
+    const T tmp = val | 1;
+
+    const unsigned approx_log2 = bit_width_nonzero(tmp);
+    const unsigned approx_log10 =
+        (approx_log2 * log2_to_log10_converter_values<MaxDigits, T>::multiplier) >>
+        log2_to_log10_converter_values<MaxDigits, T>::rshift;
+    return approx_log10 + (tmp > powers_of_10_minus_1<T>[approx_log10]);
 }
 
 #if defined(_MSC_VER)
@@ -26,47 +175,21 @@ constexpr T pow10(size_t exp) noexcept {
 #pragma warning(disable : 4146)
 #endif
 
-// Binary search to find the number of digits in the given integral.
-// Low: Something that is guaranteed to be too small
-// High: Something that is guaranteed to be large enough
-// Expects: Low < High
-// Returns: the smallest value that is large enough (will be between Low+1 and High inclusive)
-// Note: 0 is always too small, because the number 0 has size 1.
-template <size_t Low, size_t High, typename T>
-inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned(const T& val) noexcept {
-    static_assert(Low < High, "Low must be less than High");
-    static_assert(std::is_unsigned_v<T> && std::is_integral_v<T>,
-                  "T should be an unsigned integer");
-    if constexpr (Low + 1 == High) {
-        return High;
-    } else {
-        using Mid = std::integral_constant<size_t, (Low + High) / 2>;
-        using MidValue = std::integral_constant<T, pow10<T>(Mid::value)>;  // 10^Mid (Mid+1 digits)
-        if (val < MidValue::value) {
-            // Mid digits is sufficient
-            return calculate_integral_size_unsigned<Low, Mid::value>(val);
-        } else {
-            // Mid digits is insufficient
-            return calculate_integral_size_unsigned<Mid::value, High>(val);
-        }
-    }
-}
-
 // Wrapper in case integer is negative
-template <size_t Low, size_t High, typename T>
+// MaxDigits is the maximum number of digits it could have, excluding the '-' sign
+template <size_t MaxDigits, typename T>
 inline LAZYCAT_FORCEINLINE size_t calculate_integral_size(const T& val) noexcept {
-    static_assert(Low < High, "Low must be less than High");
     if constexpr (std::is_signed_v<T>) {  // signed
         if (val < static_cast<T>(0)) {    // negative
-            return calculate_integral_size_unsigned<Low, High>(static_cast<std::make_unsigned_t<T>>(
+            return calculate_integral_size_unsigned<MaxDigits>(static_cast<std::make_unsigned_t<T>>(
                        -static_cast<std::make_unsigned_t<T>>(val))) +
                    1;  // +1 for the negative sign
         } else {
-            return calculate_integral_size_unsigned<Low, High>(
+            return calculate_integral_size_unsigned<MaxDigits>(
                 static_cast<std::make_unsigned_t<T>>(val));
         }
     } else {  // unsigned
-        return calculate_integral_size_unsigned<Low, High>(val);
+        return calculate_integral_size_unsigned<MaxDigits>(val);
     }
 }
 
@@ -108,7 +231,6 @@ inline LAZYCAT_FORCEINLINE char* write_integral_chars(char* out,
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
-
 }  // namespace detail
 
 template <typename T>
@@ -117,8 +239,7 @@ struct integral_writer : public base_writer {
     mutable size_t cached_size;  // cached value of size
     constexpr size_t size() const noexcept {
         return cached_size =
-                   detail::calculate_integral_size<0, std::numeric_limits<T>::digits10 + 1>(
-                       content);
+                   detail::calculate_integral_size<std::numeric_limits<T>::digits10 + 1>(content);
     }
     constexpr char* write(char* out) const noexcept {
         return detail::write_integral_chars(out, content, cached_size);

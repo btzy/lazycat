@@ -33,7 +33,7 @@ jobs:
     - name: Configure
       run: mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror" -DCMAKE_BUILD_TYPE=Release -DLAZYCAT_BUILD_BENCHMARKS=ON ..
     - name: Build
-      run: cmake --build build
+      run: cmake --build build --verbose
     - name: Test
       run: cd build && ctest --verbose
   
@@ -50,7 +50,7 @@ jobs:
     - name: Configure
       run: mkdir build && cd build && cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror" -DCMAKE_BUILD_TYPE=Release -DLAZYCAT_BUILD_BENCHMARKS=ON ..
     - name: Build
-      run: cmake --build build
+      run: cmake --build build --verbose
     - name: Test
       run: cd build && ctest --verbose
   
