@@ -246,14 +246,28 @@ template <size_t MaxDigits, typename T>
 inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_v3(const T& val) noexcept {
     if constexpr (std::is_signed_v<T>) {  // signed
         if (val < static_cast<T>(0)) {    // negative
-            return calculate_integral_size_unsigned<MaxDigits>(
-                       static_cast<std::make_unsigned_t<T>>(
-                           -static_cast<std::make_unsigned_t<T>>(val))) +
+            return calculate_integral_size_unsigned<MaxDigits>(static_cast<std::make_unsigned_t<T>>(
+                       -static_cast<std::make_unsigned_t<T>>(val))) +
                    1;  // +1 for the negative sign
         } else {
             return calculate_integral_size_unsigned<MaxDigits>(
                 static_cast<std::make_unsigned_t<T>>(val));
         }
+    } else {  // unsigned
+        return calculate_integral_size_unsigned_v3<MaxDigits>(val);
+    }
+}
+
+// Wrapper in case integer is negative
+// MaxDigits is the maximum number of digits it could have, excluding the '-' sign
+template <size_t MaxDigits, typename T>
+inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_v3_negflip(const T& val) noexcept {
+    if constexpr (std::is_signed_v<T>) {  // signed
+        bool neg = val < static_cast<T>(0);
+        return neg + calculate_integral_size_unsigned<MaxDigits>(
+                         (neg ? static_cast<std::make_unsigned_t<T>>(
+                                    -static_cast<std::make_unsigned_t<T>>(val))
+                              : static_cast<std::make_unsigned_t<T>>(val)));
     } else {  // unsigned
         return calculate_integral_size_unsigned_v3<MaxDigits>(val);
     }
@@ -267,6 +281,20 @@ struct integral_writer_v3 : public base_writer {
     constexpr size_t size() {
         return cached_size =
                    detail::calculate_integral_size_v3<std::numeric_limits<T>::digits10 + 1>(
+                       content);
+    }
+    constexpr char* write(char* out) {
+        return detail::write_integral_chars(out, content, cached_size);
+    }
+};
+
+template <typename T>
+struct integral_writer_v3_negflip : public base_writer {
+    T content;
+    mutable size_t cached_size;  // cached value of size
+    constexpr size_t size() {
+        return cached_size =
+                   detail::calculate_integral_size_v3_negflip<std::numeric_limits<T>::digits10 + 1>(
                        content);
     }
     constexpr char* write(char* out) {
@@ -447,6 +475,22 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_PRNG_ApproxSize)(benchmark::State& st
     }
 }
 
+BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_PRNG_ApproxSize_Negflip)(benchmark::State& state) {
+    int x = 42;
+    for (auto _ : state) {
+        char arr[64];
+        x = ((x >> 16) ^ x) * 0x45d9f3c;
+        benchmark::ClobberMemory();
+        benchmark::DoNotOptimize(x);
+        auto writer = integral_writer_v3_negflip<std::int32_t>{{}, x, 0};
+        if (writer.size() <= 64) {
+            writer.write(arr);
+        }
+        benchmark::ClobberMemory();
+        benchmark::DoNotOptimize(arr);
+    }
+}
+
 BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_PRNG_Pow8)(benchmark::State& state) {
     int x = 42;
     for (auto _ : state) {
@@ -543,6 +587,24 @@ BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG_ApproxSize)(benchmark::State&
     }
 }
 
+BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG_ApproxSize_Negflip)(benchmark::State& state) {
+    int x = 42;
+    for (auto _ : state) {
+        char arr[64];
+        x = ((x >> 16) ^ x) * 0x45d9f3c;
+        int y = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
+        benchmark::ClobberMemory();
+        benchmark::DoNotOptimize(x);
+        benchmark::DoNotOptimize(y);
+        auto writer = integral_writer_v3_negflip<std::int32_t>{{}, y, 0};
+        if (writer.size() <= 64) {
+            writer.write(arr);
+        }
+        benchmark::ClobberMemory();
+        benchmark::DoNotOptimize(arr);
+    }
+}
+
 BENCHMARK_F(I32_Fixture, Write_I32_LazyCat_ExpPRNG_Pow8)(benchmark::State& state) {
     int x = 42;
     for (auto _ : state) {
@@ -615,6 +677,19 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_PRNG_ApproxSize)(benchmark::State& sta
     }
 }
 
+BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_PRNG_ApproxSize_Negflip)(benchmark::State& state) {
+    int x = 42;
+    for (auto _ : state) {
+        x = ((x >> 16) ^ x) * 0x45d9f3c;
+        benchmark::ClobberMemory();
+        benchmark::DoNotOptimize(x);
+        auto writer = integral_writer_v3_negflip<std::int32_t>{{}, x, 0};
+        const auto size = writer.size();
+        benchmark::ClobberMemory();
+        benchmark::DoNotOptimize(size);
+    }
+}
+
 BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_PRNG_Pow8)(benchmark::State& state) {
     int x = 42;
     for (auto _ : state) {
@@ -670,6 +745,22 @@ BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_ExpPRNG_ApproxSize)(benchmark::State& 
         benchmark::DoNotOptimize(x);
         benchmark::DoNotOptimize(y);
         auto writer = integral_writer_v3<std::int32_t>{{}, y, 0};
+        size = writer.size();
+        benchmark::ClobberMemory();
+        benchmark::DoNotOptimize(size);
+    }
+}
+
+BENCHMARK_F(I32_Fixture, Size_I32_LazyCat_ExpPRNG_ApproxSize_Negflip)(benchmark::State& state) {
+    int x = 42;
+    size_t size;
+    for (auto _ : state) {
+        x = ((x >> 16) ^ x) * 0x45d9f3c;
+        int y = detail::powers_of_10<int>[static_cast<unsigned int>(x) % 9] & x;
+        benchmark::ClobberMemory();
+        benchmark::DoNotOptimize(x);
+        benchmark::DoNotOptimize(y);
+        auto writer = integral_writer_v3_negflip<std::int32_t>{{}, y, 0};
         size = writer.size();
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(size);

@@ -180,14 +180,11 @@ inline LAZYCAT_FORCEINLINE size_t calculate_integral_size_unsigned(const T& val)
 template <size_t MaxDigits, typename T>
 inline LAZYCAT_FORCEINLINE size_t calculate_integral_size(const T& val) noexcept {
     if constexpr (std::is_signed_v<T>) {  // signed
-        if (val < static_cast<T>(0)) {    // negative
-            return calculate_integral_size_unsigned<MaxDigits>(static_cast<std::make_unsigned_t<T>>(
-                       -static_cast<std::make_unsigned_t<T>>(val))) +
-                   1;  // +1 for the negative sign
-        } else {
-            return calculate_integral_size_unsigned<MaxDigits>(
-                static_cast<std::make_unsigned_t<T>>(val));
-        }
+        bool neg = val < static_cast<T>(0);
+        return neg + calculate_integral_size_unsigned<MaxDigits>(
+                         (neg ? static_cast<std::make_unsigned_t<T>>(
+                                    -static_cast<std::make_unsigned_t<T>>(val))
+                              : static_cast<std::make_unsigned_t<T>>(val)));
     } else {  // unsigned
         return calculate_integral_size_unsigned<MaxDigits>(val);
     }
