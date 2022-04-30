@@ -1,6 +1,7 @@
 set(SOURCE_FILES
   "unit_test.cpp"
   "integral_test.cpp"
+  "floating_point_test.cpp"
   "bool_test.cpp"
 )
 

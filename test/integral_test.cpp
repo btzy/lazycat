@@ -7,9 +7,11 @@
 
 using namespace lazycat;
 
+namespace {
 std::string_view sv_from_ptrs(char* begin, char* end) {
     return std::string_view(begin, end - begin);
 }
+}  // namespace
 
 TEST_CASE("integral_writer int32_t") {
     auto test = [](std::int32_t val) {

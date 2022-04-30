@@ -6,5 +6,8 @@
 // Writers for integral types
 #include <lazycat/lazycat_integral.hpp>
 
+// Writers for floating point types
+#include <lazycat/lazycat_floating_point.hpp>
+
 // Writers for bool
 #include <lazycat/lazycat_bool.hpp>
